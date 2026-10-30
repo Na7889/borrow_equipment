@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ระบบยืม-คืนอุปกรณ์วิทยาศาสตร์</title>
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#fafaf9;--card:#fff;--ink:#1c1917;--mute:#78716c;--line:#e7e5e4;--soft:#f5f5f4;--acc:#047857;--on:#fff;--acc-s:#ecfdf5;--warn:#b91c1c;--warn-s:#fef2f2;--pend:#a16207;--pend-s:#fefce8;--pad:max(20px,calc((100% - 720px)/2))}
+@media(prefers-color-scheme:dark){:root{--bg:#0c0a09;--card:#171514;--ink:#f5f5f4;--mute:#a8a29e;--line:#2b2724;--soft:#211e1c;--acc:#34d399;--on:#052e22;--acc-s:#0a2e22;--warn:#fca5a5;--warn-s:#3b1212;--pend:#fde047;--pend-s:#33290a}}
+*{box-sizing:border-box}
+body{margin:0;font:15px/1.6 "Noto Sans Thai",system-ui,sans-serif;background:var(--bg);color:var(--ink);-webkit-font-smoothing:antialiased}
+header{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:16px var(--pad)}
+.brand{font-weight:600;font-size:16px;letter-spacing:-.01em}
+nav{position:sticky;top:0;z-index:5;display:flex;gap:4px;overflow-x:auto;padding:8px var(--pad);background:color-mix(in srgb,var(--bg) 88%,transparent);backdrop-filter:blur(10px);border-bottom:1px solid var(--line);scrollbar-width:none}
+nav button{white-space:nowrap;padding:6px 14px;border:0;border-radius:99px;background:none;color:var(--mute);font:inherit;font-size:14px;cursor:pointer;transition:.15s}
+nav button:hover{background:var(--soft);color:var(--ink)}
+nav button.on{background:var(--ink);color:var(--bg);font-weight:500}
+main{max-width:760px;margin:0 auto;padding:20px}
+main>p{color:var(--mute);text-align:center;padding:40px 0}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px;margin-bottom:10px}
+.row{display:flex;justify-content:space-between;align-items:center;gap:12px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+label{font-size:13px;font-weight:500;color:var(--mute)}
+input,select{width:100%;padding:10px 12px;margin:6px 0 14px;border:1px solid var(--line);border-radius:10px;background:var(--card);color:var(--ink);font:inherit;outline:0;transition:.15s}
+input:focus,select:focus{border-color:var(--acc);box-shadow:0 0 0 3px color-mix(in srgb,var(--acc) 18%,transparent)}
+.b{background:var(--acc);color:var(--on);border:1px solid var(--acc);border-radius:10px;padding:8px 16px;font:inherit;font-size:14px;font-weight:500;cursor:pointer;transition:.15s}
+.b:hover{opacity:.88}.b:disabled{opacity:.35;cursor:not-allowed}
+.b.g{background:transparent;color:var(--ink);border-color:var(--line)}.b.g:hover{background:var(--soft);opacity:1}
+.b.r{background:var(--warn);border-color:var(--warn);color:#fff}
+.card .b{margin:4px 6px 0 0}.card .row .b{margin:0}
+.tag{display:inline-block;font-size:12px;font-weight:500;padding:2px 10px;border-radius:99px;background:var(--soft);color:var(--mute)}
+.tag.ok{background:var(--acc-s);color:var(--acc)}.tag.warn{background:var(--warn-s);color:var(--warn)}.tag.pend{background:var(--pend-s);color:var(--pend)}
+small{color:var(--mute);font-size:13px}
+ul{padding-left:18px;margin:10px 0}li{margin:2px 0}
+.num{font-size:32px;font-weight:600;letter-spacing:-.02em;line-height:1.2}.num.warn{background:none;color:var(--warn)}
+.login{max-width:380px;margin:10vh auto 0;padding:28px;border-radius:18px}
+.login h1{font-size:26px;line-height:1.3;font-weight:600;letter-spacing:-.02em;margin:0 0 6px}
+.sub{color:var(--mute);margin:0 0 24px}
+.alt{text-align:center;margin:18px 0 0;font-size:14px;color:var(--mute)}
+a{color:var(--acc);text-decoration:none;font-weight:500}
+#reader{border-radius:12px;overflow:hidden;margin-bottom:10px}
+dialog{border:1px solid var(--line);border-radius:18px;padding:20px;width:min(92vw,480px);background:var(--card);color:var(--ink)}
+dialog::backdrop{background:#0007;backdrop-filter:blur(3px)}
+dialog h3{margin:0 0 14px;font-weight:600}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<dialog id="dlg"></dialog>
+<script>
+/* ===== ตั้งค่า: ใส่ URL ของ Web App (ลงท้าย /exec) ===== */
+const API = 'https://script.google.com/macros/s/AKfycbz_lnVi84lrRexPKvMlrZ6neBmTT0Smr2NzLKUwRuo3oqwInZbJ2quTNXjTNUyhkQXq/exec';
+
+const CATS = ['ฟิสิกส์','เคมี','ชีววิทยา','โลกและดาราศาสตร์','ทั่วไป'];
+const TYPES = ['อุปกรณ์ทั่วไป','อุปกรณ์ราคาสูง','วัสดุสิ้นเปลือง'];
+const STAFF = ['staff','teacher','admin'];
+const S = { token: localStorage.t || '', user: JSON.parse(localStorage.u || 'null'), eq: [], cart: {}, loans: [], tab: 'eq', q: '', reg: false, users: [] };
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const fmt = d => d ? new Date(d).toLocaleString('th-TH', { dateStyle: 'short', timeStyle: 'short' }) : '-';
+const isStaff = () => S.user && STAFF.includes(S.user.role);
+const cartN = () => Object.values(S.cart).reduce((a, b) => a + b, 0);
+
+async function api(action, data = {}) {
+  const r = await fetch(API, { method: 'POST', body: JSON.stringify({ action, token: S.token, data }) }); // text/plain เลี่ยง CORS preflight
+  const j = await r.json();
+  if (!j.ok) { if (j.code === 'AUTH') logout(); throw new Error(j.error); }
+  return j.data;
+}
+const run = async fn => { try { await fn(); } catch (e) { alert(e.message); } };
+
+function logout() { localStorage.clear(); S.token = ''; S.user = null; render(); }
+function go(t) { S.tab = t; render(); }
+
+function render() {
+  if (!S.token && S.reg) return $('#app').innerHTML = regView();
+  if (!S.token) return $('#app').innerHTML = `<div class="card login"><h1>ยืม-คืนอุปกรณ์<br>วิทยาศาสตร์</h1><p class="sub">เข้าสู่ระบบเพื่อเริ่มใช้งาน</p>
+    <label>รหัสผู้ใช้</label><input id="uid" autocomplete="username"><label>PIN</label><input id="pin" type="password" autocomplete="current-password">
+    <button class="b" style="width:100%" onclick="doLogin()">เข้าสู่ระบบ</button>
+    <p class="alt"><a href="#" onclick="S.reg=true;render();return false">ยังไม่มีบัญชี? ลงทะเบียน</a></p></div>`;
+  const tabs = [['eq','อุปกรณ์'],['cart','ตะกร้า'],['loans','รายการยืม']].concat(isStaff() ? [['dash','แดชบอร์ด'],['add','เพิ่มอุปกรณ์']] : []).concat(S.user.role === 'admin' ? [['users','ผู้ใช้']] : []);
+  $('#app').innerHTML = `<header><div><div class="brand">ยืม-คืนอุปกรณ์วิทยาศาสตร์</div><small>${esc(S.user.name)} · ${S.user.role}</small></div><button class="b g" onclick="logout()">ออกจากระบบ</button></header>
+    <nav>${tabs.map(([k, l]) => `<button class="${S.tab == k ? 'on' : ''}" onclick="go('${k}')">${l}${k == 'cart' ? ` (<span id="cn">${cartN()}</span>)` : ''}</button>`).join('')}</nav><main id="main"></main>`;
+  ({ eq: vEq, cart: vCart, loans: vLoans, dash: vDash, add: vAdd, users: vUsers })[S.tab]();
+}
+
+function doLogin() {
+  run(async () => {
+    const r = await api('login', { user_id: $('#uid').value.trim(), pin: $('#pin').value });
+    S.token = r.token; S.user = r.user; localStorage.t = r.token; localStorage.u = JSON.stringify(r.user); render();
+  });
+}
+
+/* ---------- อุปกรณ์ + สแกน QR ---------- */
+function vEq() {
+  $('#main').innerHTML = `<div class="row"><input id="q" placeholder="ค้นหาอุปกรณ์..." value="${esc(S.q)}" oninput="S.q=this.value;drawEq()">
+    <button class="b g" style="margin-bottom:6px;white-space:nowrap" onclick="scan()">สแกน QR</button></div><div id="reader"></div><div id="list"></div>`;
+  S.eq.length ? drawEq() : run(async () => { S.eq = await api('getEquipment'); drawEq(); });
+}
+function drawEq() {
+  const q = S.q.toLowerCase();
+  $('#list').innerHTML = S.eq.filter(e => (e.name + e.category + e.equip_id).toLowerCase().includes(q)).map(e => {
+    const ok = e.status === 'ใช้งานได้' && +e.available_qty > 0;
+    return `<div class="card row"><div><b style="font-weight:600">${esc(e.name)}</b> ${e.requires_approval === 'Y' ? '<span class="tag pend">ต้องอนุมัติ</span>' : ''}<br>
+      <small>${esc(e.equip_id)} · ${esc(e.category)} · ${esc(e.location)}</small><br>
+      <span class="tag ${+e.available_qty ? 'ok' : 'warn'}">คงเหลือ ${e.available_qty}/${e.total_qty} ${esc(e.unit)}</span></div>
+      <button class="b" ${ok ? '' : 'disabled'} onclick="addCart('${e.equip_id}')">+ ยืม</button></div>`;
+  }).join('') || '<p>ไม่พบอุปกรณ์</p>';
+}
+function addCart(id) {
+  const e = S.eq.find(x => x.equip_id === id);
+  if (!e) return alert('ไม่พบรหัสอุปกรณ์ ' + id);
+  if ((S.cart[id] || 0) >= +e.available_qty) return alert('เกินจำนวนคงเหลือ');
+  S.cart[id] = (S.cart[id] || 0) + 1; $('#cn').textContent = cartN();
+}
+function scan() {
+  const r = new Html5Qrcode('reader');
+  r.start({ facingMode: 'environment' }, { fps: 10, qrbox: 220 }, txt => {
+    r.stop().then(() => { $('#reader').innerHTML = ''; addCart(txt.trim()); });
+  }).catch(() => alert('เปิดกล้องไม่ได้ (ต้องเข้าผ่าน https และอนุญาตกล้อง)'));
+}
+
+/* ---------- ตะกร้า / ยืม ---------- */
+function vCart() {
+  const ids = Object.keys(S.cart);
+  $('#main').innerHTML = ids.length ? ids.map(id => { const e = S.eq.find(x => x.equip_id === id) || {};
+    return `<div class="card row"><div><b>${esc(e.name)}</b><br><small>${id}</small></div><div>
+      <button class="b g" onclick="chg('${id}',-1)">−</button> <b>${S.cart[id]}</b> <button class="b g" onclick="chg('${id}',1)">+</button></div></div>`; }).join('') +
+    `<div class="card"><label>ชื่อกลุ่มทดลอง</label><input id="gn"><label>วิชา/คาบเรียน</label><input id="sc">
+    <label>จำนวนวันที่ยืม</label><input id="dy" type="number" min="1" value="1"><button class="b" style="width:100%" onclick="submitLoan()">ยืนยันการยืม</button></div>`
+    : '<p>ตะกร้าว่าง — เลือกอุปกรณ์ที่แท็บ "อุปกรณ์" หรือสแกน QR</p>';
+}
+function chg(id, d) {
+  const e = S.eq.find(x => x.equip_id === id), n = (S.cart[id] || 0) + d;
+  if (n <= 0) delete S.cart[id]; else if (n <= +e.available_qty) S.cart[id] = n;
+  vCart();
+}
+function submitLoan() {
+  run(async () => {
+    const r = await api('createLoan', { items: Object.entries(S.cart).map(([equip_id, qty]) => ({ equip_id, qty })),
+      group_name: $('#gn').value, subject_class: $('#sc').value, days: $('#dy').value });
+    alert(r.status === 'รออนุมัติ' ? `ส่งคำขอแล้ว (${r.loan_id}) รอครูอนุมัติ` : `บันทึกการยืมแล้ว ${r.loan_id}`);
+    S.cart = {}; S.eq = []; go('loans');
+  });
+}
+
+/* ---------- รายการยืม / อนุมัติ / คืน ---------- */
+function vLoans() {
+  $('#main').innerHTML = '<p>กำลังโหลด...</p>';
+  run(async () => { S.loans = await api(isStaff() ? 'getAllLoans' : 'getMyLoans'); drawLoans(); });
+}
+function drawLoans() {
+  const cls = l => l.overdue ? 'warn' : l.status === 'รออนุมัติ' ? 'pend' : l.status === 'คืนแล้ว' ? 'ok' : '';
+  $('#main').innerHTML = S.loans.map(l => `<div class="card"><div class="row"><b>${l.loan_id}</b>
+    <span class="tag ${cls(l)}">${l.overdue ? 'เกินกำหนด' : l.status}</span></div>
+    <small>${esc(l.borrower_name)} ${l.group_name ? '· กลุ่ม ' + esc(l.group_name) : ''}<br>ยืม ${fmt(l.loan_date)} · กำหนดคืน ${fmt(l.due_date)}</small>
+    <ul>${l.items.map(i => `<li>${esc(i.name)} × ${i.qty} <small>(คืนแล้ว ${i.returned_qty})</small></li>`).join('')}</ul>
+    ${l.status === 'รออนุมัติ' && ['teacher', 'admin'].includes(S.user.role) ? `<button class="b" onclick="approve('${l.loan_id}')">อนุมัติ</button>` : ''}
+    ${isStaff() && ['ยืมอยู่', 'คืนบางส่วน'].includes(l.status) ? `<button class="b" onclick="openReturn('${l.loan_id}')">รับคืน</button>` : ''}</div>`).join('') || '<p>ยังไม่มีรายการ</p>';
+}
+function approve(id) { run(async () => { await api('approveLoan', { loan_id: id }); S.eq = []; vLoans(); }); }
+function openReturn(id) {
+  const l = S.loans.find(x => x.loan_id === id), d = $('#dlg');
+  d.innerHTML = `<h3>รับคืน ${id}</h3>` + l.items.filter(i => i.qty > i.returned_qty).map((i, k) =>
+    `<div class="card"><b>${esc(i.name)}</b> <small>ค้างคืน ${i.qty - i.returned_qty}</small>
+    <div class="grid"><input type="number" min="0" max="${i.qty - i.returned_qty}" value="${i.qty - i.returned_qty}" id="rq${k}">
+    <select id="rc${k}"><option>ดี</option><option>พอใช้</option><option>ชำรุด</option></select></div></div>`).join('') +
+    `<div class="row"><button class="b g" onclick="$('#dlg').close()">ยกเลิก</button><button class="b" onclick="doReturn('${id}')">ยืนยันรับคืน</button></div>`;
+  d.showModal();
+}
+function doReturn(id) {
+  const l = S.loans.find(x => x.loan_id === id);
+  const items = l.items.filter(i => i.qty > i.returned_qty).map((i, k) => ({ equip_id: i.equip_id, returned_qty: +$('#rq' + k).value, condition_in: $('#rc' + k).value }));
+  run(async () => { await api('returnLoan', { loan_id: id, items }); $('#dlg').close(); S.eq = []; vLoans(); });
+}
+
+/* ---------- แดชบอร์ด / เพิ่มอุปกรณ์ (เจ้าหน้าที่) ---------- */
+function vDash() {
+  $('#main').innerHTML = '<p>กำลังโหลด...</p>';
+  run(async () => {
+    const d = await api('getDashboard'), box = (n, t, c = '') => `<div class="card"><div class="num ${c}">${n}</div><small>${t}</small></div>`;
+    $('#main').innerHTML = `<div class="grid">${box(d.equipment_types, 'รายการอุปกรณ์')}${box(d.active_loans, 'กำลังถูกยืม')}${box(d.overdue, 'เกินกำหนดคืน', d.overdue ? 'warn' : '')}${box(d.pending, 'รออนุมัติ')}</div>
+      <div class="card"><b>สต็อกต่ำ</b>${d.low_stock.map(e => `<div class="row"><span>${esc(e.name)}</span><span class="tag warn">${e.available_qty} / ขั้นต่ำ ${e.min_stock}</span></div>`).join('') || '<br><small>ไม่มี</small>'}</div>`;
+  });
+}
+function vAdd() {
+  const opt = a => a.map(x => `<option>${x}</option>`).join('');
+  $('#main').innerHTML = `<div class="card"><label>ชื่ออุปกรณ์</label><input id="n"><label>หมวด</label><select id="c">${opt(CATS)}</select>
+    <label>ประเภท</label><select id="t">${opt(TYPES)}</select><div class="grid"><div><label>จำนวน</label><input id="tq" type="number" value="1"></div><div><label>หน่วย</label><input id="u" value="ชิ้น"></div></div>
+    <label>จำนวนขั้นต่ำ (แจ้งเตือน)</label><input id="ms" type="number" value="0"><label>ที่เก็บ</label><input id="lc">
+    <label>ต้องให้ครูอนุมัติ (เช่น สารเคมี)</label><select id="ra"><option>N</option><option>Y</option></select>
+    <button class="b" style="width:100%" onclick="saveEq()">บันทึก</button></div>`;
+}
+function saveEq() {
+  run(async () => {
+    const r = await api('addEquipment', { name: $('#n').value, category: $('#c').value, type: $('#t').value, total_qty: $('#tq').value,
+      unit: $('#u').value, min_stock: $('#ms').value, location: $('#lc').value, requires_approval: $('#ra').value });
+    alert('เพิ่มแล้ว รหัส ' + r.equip_id + ' (ใช้รหัสนี้สร้าง QR Code)'); S.eq = []; go('eq');
+  });
+}
+
+/* ---------- ลงทะเบียน ---------- */
+function regView() {
+  return `<div class="card login"><h1>ลงทะเบียน</h1><p class="sub">สร้างบัญชีผู้ใช้ใหม่</p>
+    <label>รหัสผู้ใช้ (ตัวอักษรอังกฤษ/ตัวเลข 3-20 ตัว เช่น รหัสนักเรียน)</label><input id="ru" autocomplete="off">
+    <label>ชื่อ-นามสกุล</label><input id="rn">
+    <label>สถานะ</label><select id="rr"><option value="student">นักเรียน</option><option value="teacher">ครู (รอผู้ดูแลอนุมัติ)</option><option value="staff">เจ้าหน้าที่ห้องปฏิบัติการ (รอผู้ดูแลอนุมัติ)</option></select>
+    <label>ชั้น/ห้อง (สำหรับนักเรียน)</label><input id="rc" placeholder="เช่น ม.4/2">
+    <label>อีเมลโรงเรียน (ถ้ามี)</label><input id="re" type="email">
+    <label>PIN (ตัวเลข 4-8 หลัก)</label><input id="rp" type="password" inputmode="numeric">
+    <label>ยืนยัน PIN</label><input id="rp2" type="password" inputmode="numeric">
+    <label>รหัสลงทะเบียน (ถ้าโรงเรียนกำหนด)</label><input id="rk" autocomplete="off">
+    <button class="b" style="width:100%" onclick="doRegister()">ลงทะเบียน</button>
+    <p class="alt"><a href="#" onclick="S.reg=false;render();return false">← กลับไปเข้าสู่ระบบ</a></p></div>`;
+}
+function doRegister() {
+  if ($('#rp').value !== $('#rp2').value) return alert('PIN ทั้งสองช่องไม่ตรงกัน');
+  run(async () => {
+    const r = await api('register', { user_id: $('#ru').value, name: $('#rn').value, role: $('#rr').value,
+      class_room: $('#rc').value, email: $('#re').value, pin: $('#rp').value, code: $('#rk').value });
+    alert(r.message); S.reg = false; render();
+  });
+}
+
+/* ---------- จัดการผู้ใช้ (admin) ---------- */
+function vUsers() {
+  $('#main').innerHTML = '<p>กำลังโหลด...</p>';
+  run(async () => { S.users = await api('getUsers'); drawUsers(); });
+}
+function drawUsers() {
+  const R = ['student', 'teacher', 'staff', 'admin'], on = u => u.status === 'active';
+  const list = S.users.slice().sort((a, b) => on(a) - on(b)); // รออนุมัติขึ้นก่อน
+  $('#main').innerHTML = list.map(u => `<div class="card"><div class="row"><b>${esc(u.name)}</b>
+    <span class="tag ${on(u) ? 'ok' : 'pend'}">${on(u) ? 'ใช้งาน' : 'รออนุมัติ/ปิด'}</span></div>
+    <small>${esc(u.user_id)} · ${esc(u.class_room)} · ${esc(u.email)}</small>
+    <div class="grid" style="margin:8px 0"><select onchange="updUser('${esc(u.user_id)}',{role:this.value})">${R.map(r => `<option ${r === u.role ? 'selected' : ''}>${r}</option>`).join('')}</select>
+    <button class="b ${on(u) ? 'g' : ''}" onclick="updUser('${esc(u.user_id)}',{status:'${on(u) ? 'inactive' : 'active'}'})">${on(u) ? 'ปิดบัญชี' : 'อนุมัติ'}</button></div>
+    <button class="b g" onclick="resetPin('${esc(u.user_id)}')">รีเซ็ต PIN</button></div>`).join('') || '<p>ยังไม่มีผู้ใช้</p>';
+}
+function updUser(id, patch) { run(async () => { await api('updateUser', { user_id: id, ...patch }); vUsers(); }); }
+function resetPin(id) { const p = prompt('PIN ใหม่ (ตัวเลข 4-8 หลัก)'); if (p) updUser(id, { new_pin: p }); }
+
+render();
+</script>
+</body>
+</html>
