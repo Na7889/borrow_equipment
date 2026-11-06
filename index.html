@@ -61,11 +61,24 @@ dialog h3{margin:0 0 14px;font-weight:600}
 .chip{white-space:nowrap;border:1.5px solid var(--line);background:#fff;color:var(--mute);border-radius:99px;padding:6px 14px;font:inherit;font-size:13px;cursor:pointer}
 .chip.on{background:#eef2ff;border-color:var(--p2);color:var(--p2);font-weight:500}
 .why{background:#f8fafc;border-radius:14px;padding:8px 12px;margin:10px 0 0;font-size:14px}
+#pop{text-align:center;width:min(86vw,360px);padding:30px 24px 24px}
+#pop[open]{animation:rise .25s ease}
+#pop h3{margin:16px 0 6px;font-size:19px}
+#pop p{margin:0 0 22px;color:var(--mute);white-space:pre-line;word-break:break-word}
+#pop .b{min-width:120px}#pop input{margin:12px 0 20px}
+.row2{display:flex;gap:10px;justify-content:center}
+.pi{width:66px;height:66px;margin:0 auto;border-radius:50%;display:grid;place-items:center;font-size:30px;font-weight:700;color:#fff;animation:pop .4s cubic-bezier(.2,1.4,.4,1)}
+.pi.ok{background:linear-gradient(135deg,#34d399,#059669);box-shadow:0 14px 26px -10px #059669}
+.pi.warn{background:linear-gradient(135deg,#fbbf24,#f97316);box-shadow:0 14px 26px -10px #f97316}
+.pi.error{background:linear-gradient(135deg,#fb7185,#e11d48);box-shadow:0 14px 26px -10px #e11d48}
+@keyframes pop{from{transform:scale(.3);opacity:0}to{transform:none;opacity:1}}
+@keyframes rise{from{transform:translateY(14px) scale(.96);opacity:0}to{transform:none;opacity:1}}
 </style>
 </head>
 <body>
 <div id="app"></div>
 <dialog id="dlg"></dialog>
+<dialog id="pop"></dialog>
 <script>
 /* ===== ตั้งค่า: ใส่ URL ของ Web App (ลงท้าย /exec) ===== */
 const API = 'https://script.google.com/macros/s/AKfycbwkEKaV0YQ4FRUApBPZ3J9hdHaopY2THV91drF71Qdx2Ymmll0POiKBVnAIaoL0R6n3/exec';
@@ -90,7 +103,7 @@ async function api(action, data = {}) {
   if (!j.ok) { if (j.code === 'AUTH') logout(); throw new Error(j.error); }
   return j.data;
 }
-const run = async fn => { try { await fn(); } catch (e) { alert(e.message); } };
+const run = async fn => { try { await fn(); } catch (e) { popup(e.message, 'error'); } };
 
 function logout() { localStorage.clear(); S.token = ''; S.user = null; render(); }
 function go(t) { S.tab = t; render(); }
@@ -131,17 +144,17 @@ function drawEq() {
   }).join('') || '<p>ไม่พบอุปกรณ์</p>';
 }
 function addCart(id) {
-  if (!canBorrow()) return alert('บทบาทนี้ไม่สามารถยืมอุปกรณ์ได้');
+  if (!canBorrow()) return popup('บทบาทนี้ไม่สามารถยืมอุปกรณ์ได้');
   const e = S.eq.find(x => x.equip_id === id);
-  if (!e) return alert('ไม่พบรหัสอุปกรณ์ ' + id);
-  if ((S.cart[id] || 0) >= +e.available_qty) return alert('เกินจำนวนคงเหลือ');
+  if (!e) return popup('ไม่พบรหัสอุปกรณ์ ' + id);
+  if ((S.cart[id] || 0) >= +e.available_qty) return popup('เกินจำนวนคงเหลือ');
   S.cart[id] = (S.cart[id] || 0) + 1; $('#cn').textContent = cartN();
 }
 function scan() {
   const r = new Html5Qrcode('reader');
   r.start({ facingMode: 'environment' }, { fps: 10, qrbox: 220 }, txt => {
     r.stop().then(() => { $('#reader').innerHTML = ''; addCart(txt.trim()); });
-  }).catch(() => alert('เปิดกล้องไม่ได้ (ต้องเข้าผ่าน https และอนุญาตกล้อง)'));
+  }).catch(() => popup('เปิดกล้องไม่ได้ (ต้องเข้าผ่าน https และอนุญาตกล้อง)'));
 }
 
 /* ---------- ตะกร้า / ยืม ---------- */
@@ -160,11 +173,11 @@ function chg(id, d) {
   vCart();
 }
 function submitLoan() {
-  if (!$('#pp').value.trim()) return alert('กรุณาระบุเหตุผลที่ยืม');
+  if (!$('#pp').value.trim()) return popup('กรุณาระบุเหตุผลที่ยืม');
   run(async () => {
     const r = await api('createLoan', { items: Object.entries(S.cart).map(([equip_id, qty]) => ({ equip_id, qty })),
       purpose: $('#pp').value, group_name: $('#gn').value, subject_class: $('#sc').value, days: $('#dy').value });
-    alert(r.status === 'รออนุมัติ' ? `ส่งคำขอแล้ว (${r.loan_id}) รอครูอนุมัติ` : `บันทึกการยืมแล้ว ${r.loan_id}`);
+    popup(r.status === 'รออนุมัติ' ? `ส่งคำขอแล้ว (${r.loan_id}) รอครูอนุมัติ` : `บันทึกการยืมแล้ว ${r.loan_id}`);
     S.cart = {}; S.eq = []; go('loans');
   });
 }
@@ -192,10 +205,10 @@ function drawLoans() {
     ${l.return_photo_url ? `<button class="b g" onclick="viewPhoto('${l.loan_id}')">ดูรูป</button>` : ''}</div>`;
   }).join('') || '<p>ไม่มีรายการ</p>');
 }
-function reject(id) { const r = prompt('เหตุผลที่ไม่อนุมัติ'); if (r !== null) run(async () => { await api('rejectLoan', { loan_id: id, reason: r }); vLoans(); }); }
+async function reject(id) { const r = await ask('ไม่อนุมัติคำขอนี้', 'ระบุเหตุผล'); if (r !== null) run(async () => { await api('rejectLoan', { loan_id: id, reason: r }); vLoans(); }); }
 function pickPhoto(id) {
   const i = document.createElement('input'); i.type = 'file'; i.accept = 'image/*'; i.capture = 'environment';
-  i.onchange = () => { if (i.files[0]) run(async () => { await api('uploadReturnPhoto', { loan_id: id, image: await shrink(i.files[0]) }); alert('บันทึกรูปแล้ว'); vLoans(); }); };
+  i.onchange = () => { if (i.files[0]) run(async () => { await api('uploadReturnPhoto', { loan_id: id, image: await shrink(i.files[0]) }); popup('บันทึกรูปแล้ว'); vLoans(); }); };
   i.click();
 }
 function shrink(file) {
@@ -260,7 +273,7 @@ function saveEq() {
   run(async () => {
     const r = await api('addEquipment', { name: $('#n').value, category: $('#c').value, type: $('#t').value, total_qty: $('#tq').value,
       unit: $('#u').value, min_stock: $('#ms').value, location: $('#lc').value, requires_approval: $('#ra').value });
-    alert('เพิ่มแล้ว รหัส ' + r.equip_id + ' (ใช้รหัสนี้สร้าง QR Code)'); S.eq = []; go('eq');
+    popup('เพิ่มแล้ว รหัส ' + r.equip_id + ' (ใช้รหัสนี้สร้าง QR Code)'); S.eq = []; go('eq');
   });
 }
 
@@ -279,11 +292,11 @@ function regView() {
     <p class="alt"><a href="#" onclick="S.reg=false;render();return false">← กลับไปเข้าสู่ระบบ</a></p></div>`;
 }
 function doRegister() {
-  if ($('#rp').value !== $('#rp2').value) return alert('PIN ทั้งสองช่องไม่ตรงกัน');
+  if ($('#rp').value !== $('#rp2').value) return popup('PIN ทั้งสองช่องไม่ตรงกัน');
   run(async () => {
     const r = await api('register', { user_id: $('#ru').value, name: $('#rn').value, role: $('#rr').value,
       class_room: $('#rc').value, email: $('#re').value, pin: $('#rp').value, code: $('#rk').value });
-    alert(r.message); S.reg = false; render();
+    popup(r.message); S.reg = false; render();
   });
 }
 
@@ -303,7 +316,27 @@ function drawUsers() {
     <button class="b g" onclick="resetPin('${esc(u.user_id)}')">รีเซ็ต PIN</button></div>`).join('') || '<p>ยังไม่มีผู้ใช้</p>';
 }
 function updUser(id, patch) { run(async () => { await api('updateUser', { user_id: id, ...patch }); vUsers(); }); }
-function resetPin(id) { const p = prompt('PIN ใหม่ (ตัวเลข 4-8 หลัก)'); if (p) updUser(id, { new_pin: p }); }
+async function resetPin(id) { const p = await ask('ตั้ง PIN ใหม่', 'ตัวเลข 4-8 หลัก', 'password'); if (p) updUser(id, { new_pin: p }); }
+
+/* ---------- ป๊อปอัปแจ้งเตือน (แทน alert/prompt) ---------- */
+function popup(msg, type, title) {
+  type = type || (/สำเร็จ|แล้ว/.test(msg) ? 'ok' : 'warn');
+  const I = { ok: ['✓', 'สำเร็จ'], warn: ['!', 'แจ้งเตือน'], error: ['✕', 'เกิดข้อผิดพลาด'] }[type], d = $('#pop');
+  d.innerHTML = `<div class="pi ${type}">${I[0]}</div><h3>${esc(title || I[1])}</h3><p>${esc(msg)}</p><button class="b" onclick="$('#pop').close()">ตกลง</button>`;
+  if (!d.open) d.showModal();
+}
+function ask(title, hint, type) {
+  return new Promise(res => {
+    const d = $('#pop');
+    d.innerHTML = `<div class="pi warn">?</div><h3>${esc(title)}</h3><input type="${type || 'text'}" placeholder="${esc(hint || '')}" autocomplete="off"><div class="row2"><button class="b g" id="pc">ยกเลิก</button><button class="b" id="po">ยืนยัน</button></div>`;
+    const i = d.querySelector('input');
+    d.addEventListener('close', () => res(null), { once: true }); // Esc หรือปิด = ยกเลิก
+    d.querySelector('#pc').onclick = () => d.close();
+    d.querySelector('#po').onclick = () => { res(i.value); d.close(); };
+    i.onkeydown = e => { if (e.key === 'Enter') d.querySelector('#po').click(); };
+    if (!d.open) d.showModal(); i.focus();
+  });
+}
 
 render();
 </script>
