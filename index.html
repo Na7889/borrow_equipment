@@ -6,154 +6,57 @@
 <title>ระบบยืม-คืนอุปกรณ์วิทยาศาสตร์</title>
 <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
-/* ===== โทนสีและตัวแปรหลัก (สว่าง, Premium) ===== */
-:root {
-  --bg: #f8fafc; /* พื้นหลังสว่าง สะอาดตา */
-  --card: #ffffff; /* พื้นหลังการ์ดสีขาวบริสุทธิ์ */
-  --ink: #1e293b; /* สีตัวอักษรหลัก (เทาเข้ม) */
-  --mute: #64748b; /* สีตัวอักษรรอง */
-  --line: #e2e8f0; /* สีเส้นขอบอ่อนๆ */
-  --soft: #f1f5f9; /* สีพื้นหลังรอง */
-  
-  /* สีสัน (Vibrant Colors) */
-  --acc: #4f46e5; /* สีหลัก (Indigo) ดูพรีเมียม */
-  --acc-grad: linear-gradient(135deg, #4f46e5, #6366f1);
-  --on: #ffffff;
-  --acc-s: #e0e7ff;
-  
-  --warn: #ef4444; /* สีแดงเตือน */
-  --warn-s: #fee2e2;
-  --pend: #f59e0b; /* สีเหลืองรออนุมัติ */
-  --pend-s: #fef3c7;
-  --ok: #10b981; /* สีเขียวสำเร็จ */
-  --ok-s: #d1fae5;
-
-  /* ความมนและเงา (Rounded & Shadows) */
-  --radius-card: 24px;
-  --radius-btn: 14px;
-  --shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.05), 0 4px 6px -4px rgba(0, 0, 0, 0.02);
-  --shadow-hover: 0 20px 25px -5px rgba(79, 70, 229, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.05);
-  
-  --pad: max(20px, calc((100% - 680px) / 2));
-}
-
-@media(prefers-color-scheme:dark){
-  :root{
-    --bg:#0f172a; --card:#1e293b; --ink:#f8fafc; --mute:#94a3b8; 
-    --line:#334155; --soft:#334155; --acc:#818cf8; --on:#ffffff; 
-    --acc-s:#3730a3; --warn:#f87171; --warn-s:#7f1d1d; 
-    --pend:#fbbf24; --pend-s:#78350f;
-  }
-}
-
-* { box-sizing: border-box; }
-body { 
-  margin: 0; 
-  font: 15px/1.7 "Noto Sans Thai", system-ui, sans-serif; 
-  background: var(--bg); 
-  color: var(--ink); 
-  -webkit-font-smoothing: antialiased;
-  min-height: 100vh;
-}
-
-/* Header & Nav */
-header { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 20px var(--pad) 10px; }
-.brand { font-weight: 700; font-size: 18px; letter-spacing: -0.01em; background: var(--acc-grad); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-nav { 
-  position: sticky; top: 0; z-index: 5; display: flex; gap: 8px; overflow-x: auto; 
-  padding: 12px var(--pad); background: rgba(248, 250, 252, 0.85); backdrop-filter: blur(12px); 
-  border-bottom: 1px solid var(--line); scrollbar-width: none;
-  justify-content: center; /* จัดเมนูให้อยู่ตรงกลาง */
-}
-nav::-webkit-scrollbar { display: none; }
-nav button { 
-  white-space: nowrap; padding: 8px 18px; border: 0; border-radius: 99px; 
-  background: var(--soft); color: var(--mute); font: inherit; font-size: 14px; font-weight: 500;
-  cursor: pointer; transition: 0.2s all ease; 
-}
-nav button:hover { background: var(--line); color: var(--ink); }
-nav button.on { 
-  background: var(--acc-grad); color: var(--on); font-weight: 600; 
-  box-shadow: 0 4px 12px rgba(79, 70, 229, 0.25); transform: translateY(-1px);
-}
-
-/* Main & Cards */
-main { max-width: 680px; margin: 0 auto; padding: 24px 20px 60px; }
-main > p { color: var(--mute); text-align: center; padding: 40px 0; }
-
-.card { 
-  background: var(--card); border: none; box-shadow: var(--shadow); 
-  border-radius: var(--radius-card); padding: 24px; margin-bottom: 16px; 
-  transition: 0.3s all ease;
-}
-.card:hover { box-shadow: var(--shadow-hover); transform: translateY(-2px); }
-.row { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
-.grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-
-/* Typography */
-label { font-size: 13px; font-weight: 600; color: var(--ink); margin-left: 4px; display: block;}
-small { color: var(--mute); font-size: 13px; }
-ul { padding-left: 20px; margin: 12px 0; } 
-li { margin: 4px 0; color: var(--mute); }
-.num { font-size: 36px; font-weight: 700; letter-spacing: -0.02em; line-height: 1.2; color: var(--acc); }
-.num.warn { color: var(--warn); }
-
-/* Inputs & Buttons */
-input, select { 
-  width: 100%; padding: 12px 16px; margin: 8px 0 16px; 
-  border: 1.5px solid var(--line); border-radius: var(--radius-btn); 
-  background: var(--soft); color: var(--ink); font: inherit; font-size: 15px;
-  outline: 0; transition: 0.2s; 
-}
-input:focus, select:focus { 
-  border-color: var(--acc); background: var(--card); 
-  box-shadow: 0 0 0 4px var(--acc-s); 
-}
-
-.b { 
-  background: var(--acc-grad); color: var(--on); border: none; 
-  border-radius: var(--radius-btn); padding: 10px 20px; 
-  font: inherit; font-size: 15px; font-weight: 600; cursor: pointer; 
-  transition: 0.2s all ease; display: inline-flex; align-items: center; justify-content: center; gap: 6px;
-}
-.b:hover { opacity: 0.9; transform: translateY(-1px); box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3); }
-.b:active { transform: translateY(0); }
-.b:disabled { background: var(--line); color: var(--mute); box-shadow: none; cursor: not-allowed; transform: none; }
-.b.g { background: var(--soft); color: var(--ink); box-shadow: none; }
-.b.g:hover { background: var(--line); }
-.b.r { background: var(--warn); color: #fff; box-shadow: 0 4px 12px rgba(239, 68, 68, 0.25); }
-
-.card .b { margin: 4px 6px 0 0; }
-.card .row .b { margin: 0; }
-
-/* Tags */
-.tag { display: inline-block; font-size: 12px; font-weight: 600; padding: 4px 12px; border-radius: 99px; background: var(--soft); color: var(--mute); }
-.tag.ok { background: var(--ok-s); color: var(--ok); }
-.tag.warn { background: var(--warn-s); color: var(--warn); }
-.tag.pend { background: var(--pend-s); color: var(--pend); }
-
-/* Login / Register View (จัดให้อยู่ตรงกลาง สวยงาม) */
-.login { 
-  max-width: 420px; margin: 12vh auto 40px; padding: 40px 32px; 
-  border-radius: var(--radius-card); text-align: center;
-}
-.login h1 { 
-  font-size: 28px; line-height: 1.3; font-weight: 700; letter-spacing: -0.02em; 
-  margin: 0 0 8px; background: var(--acc-grad); -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-}
-.sub { color: var(--mute); margin: 0 0 32px; font-size: 15px; }
-.login label { text-align: left; margin-top: 10px; }
-.alt { text-align: center; margin: 24px 0 0; font-size: 14px; color: var(--mute); }
-a { color: var(--acc); text-decoration: none; font-weight: 600; transition: 0.2s; }
-a:hover { color: #4338ca; text-decoration: underline; }
-
-/* Others */
-#reader { border-radius: var(--radius-card); overflow: hidden; margin-bottom: 16px; border: 1px solid var(--line); box-shadow: var(--shadow); }
-dialog { border: none; border-radius: var(--radius-card); padding: 28px; width: min(92vw, 480px); background: var(--card); color: var(--ink); box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25); }
-dialog::backdrop { background: rgba(15, 23, 42, 0.4); backdrop-filter: blur(6px); }
-dialog h3 { margin: 0 0 20px; font-weight: 700; font-size: 20px; color: var(--acc); }
+:root{--ink:#1e1b4b;--mute:#64748b;--line:#e2e8f0;--p1:#06b6d4;--p2:#6366f1;--p3:#a855f7;--grad:linear-gradient(135deg,var(--p1),var(--p2) 60%,var(--p3));color-scheme:light}
+*{box-sizing:border-box}
+body{margin:0;min-height:100vh;font:15px/1.65 "Noto Sans Thai",system-ui,sans-serif;color:var(--ink);-webkit-font-smoothing:antialiased;
+background:radial-gradient(60% 40% at 10% 0%,#cffafe99,transparent),radial-gradient(50% 40% at 100% 20%,#ede9fe99,transparent),radial-gradient(50% 40% at 0% 100%,#fef3c799,transparent),#f8fafc;background-attachment:fixed}
+header{position:relative;text-align:center;color:#fff;background:var(--grad);padding:30px 20px 52px;border-radius:0 0 40px 40px;box-shadow:0 12px 32px -12px #6366f199}
+.brand{font-size:21px;font-weight:600;letter-spacing:-.01em}
+header small{color:#ffffffd9}
+header .b.g{position:absolute;top:16px;right:16px;padding:6px 14px;background:#ffffff2e;color:#fff;border:1px solid #ffffff55;box-shadow:none;backdrop-filter:blur(6px)}
+header>div{padding:0 80px}
+nav{position:sticky;top:12px;z-index:5;display:flex;gap:4px;width:fit-content;max-width:calc(100% - 24px);overflow-x:auto;margin:-26px auto 0;padding:6px;background:#fff;border-radius:99px;box-shadow:0 10px 30px -10px #6366f155;scrollbar-width:none}
+nav button{white-space:nowrap;padding:8px 18px;border:0;border-radius:99px;background:none;color:var(--mute);font:inherit;font-size:14px;cursor:pointer;transition:.2s}
+nav button:hover{background:#eef2ff;color:var(--p2)}
+nav button.on{background:var(--grad);color:#fff;font-weight:500;box-shadow:0 6px 14px -6px #6366f1}
+main{max-width:720px;margin:0 auto;padding:26px 16px 60px}
+main>p{color:var(--mute);text-align:center;padding:40px 0}
+.card{background:#fff;border:1px solid #fff;border-radius:24px;padding:18px 20px;margin-bottom:14px;box-shadow:0 8px 28px -14px #6366f155,0 1px 2px #0000000a;transition:.2s}
+.card:hover{transform:translateY(-1px);box-shadow:0 14px 34px -14px #6366f177}
+.row{display:flex;justify-content:space-between;align-items:center;gap:14px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+label{display:block;font-size:13px;font-weight:500;color:var(--mute);margin-left:4px}
+input,select{width:100%;padding:12px 16px;margin:6px 0 14px;border:1.5px solid var(--line);border-radius:16px;background:#f8fafc;color:var(--ink);font:inherit;outline:0;transition:.2s}
+input:focus,select:focus{background:#fff;border-color:var(--p2);box-shadow:0 0 0 4px #6366f126}
+.b{background:var(--grad);color:#fff;border:0;border-radius:99px;padding:10px 22px;font:inherit;font-size:14px;font-weight:500;cursor:pointer;box-shadow:0 8px 18px -8px #6366f1;transition:.2s}
+.b:hover{transform:translateY(-1px);box-shadow:0 12px 22px -8px #6366f1}.b:active{transform:none}
+.b:disabled{background:#cbd5e1;box-shadow:none;cursor:not-allowed;transform:none}
+.b.g{background:#fff;color:#475569;border:1.5px solid var(--line);box-shadow:none}.b.g:hover{background:#f8fafc;box-shadow:none}
+.b.r{background:linear-gradient(135deg,#fb7185,#e11d48)}
+.card .b{margin:6px 8px 0 0}.card .row .b{margin:0}
+.tag{display:inline-block;font-size:12px;font-weight:500;padding:3px 12px;border-radius:99px;background:#e0e7ff;color:#4338ca}
+.tag.ok{background:#d1fae5;color:#047857}.tag.warn{background:#ffe4e6;color:#be123c}.tag.pend{background:#fef3c7;color:#b45309}
+small{color:var(--mute);font-size:13px}
+ul{padding-left:18px;margin:10px 0}li{margin:2px 0}
+.ic{flex:none;width:48px;height:48px;border-radius:18px;display:grid;place-items:center;font-size:23px;background:color-mix(in srgb,var(--c) 15%,#fff)}
+.num{font-size:34px;font-weight:600;letter-spacing:-.02em;line-height:1.2}
+.grid>.card:nth-child(1){background:linear-gradient(135deg,#e0f2fe,#fff)}.grid>.card:nth-child(1) .num{color:#0284c7}
+.grid>.card:nth-child(2){background:linear-gradient(135deg,#ede9fe,#fff)}.grid>.card:nth-child(2) .num{color:#7c3aed}
+.grid>.card:nth-child(3){background:linear-gradient(135deg,#ffe4e6,#fff)}.grid>.card:nth-child(3) .num{color:#e11d48}
+.grid>.card:nth-child(4){background:linear-gradient(135deg,#d1fae5,#fff)}.grid>.card:nth-child(4) .num{color:#059669}
+.login{max-width:400px;margin:8vh auto 40px;padding:34px 28px;border-radius:32px;text-align:center}
+.login label{text-align:left}
+.login h1{font-size:26px;line-height:1.3;font-weight:600;letter-spacing:-.02em;margin:0 0 6px}
+.logo{width:68px;height:68px;margin:0 auto 18px;border-radius:24px;display:grid;place-items:center;font-size:32px;background:var(--grad);box-shadow:0 14px 28px -10px #6366f1}
+.sub{color:var(--mute);margin:0 0 24px}
+.alt{text-align:center;margin:18px 0 0;font-size:14px;color:var(--mute)}
+a{color:var(--p2);text-decoration:none;font-weight:500}
+#reader{border-radius:20px;overflow:hidden;margin-bottom:12px}
+dialog{border:0;border-radius:28px;padding:22px;width:min(92vw,480px);background:#fff;color:var(--ink);box-shadow:0 30px 60px -20px #1e1b4b66}
+dialog::backdrop{background:#1e1b4b66;backdrop-filter:blur(4px)}
+dialog h3{margin:0 0 14px;font-weight:600}
 </style>
 </head>
 <body>
@@ -166,6 +69,8 @@ const API = 'https://script.google.com/macros/s/AKfycbz_lnVi84lrRexPKvMlrZ6neBmT
 const CATS = ['ฟิสิกส์','เคมี','ชีววิทยา','โลกและดาราศาสตร์','ทั่วไป'];
 const TYPES = ['อุปกรณ์ทั่วไป','อุปกรณ์ราคาสูง','วัสดุสิ้นเปลือง'];
 const STAFF = ['staff','teacher','admin'];
+const CC = { 'ฟิสิกส์':'#3b82f6','เคมี':'#ec4899','ชีววิทยา':'#10b981','โลกและดาราศาสตร์':'#8b5cf6','ทั่วไป':'#f59e0b' };
+const CI = { 'ฟิสิกส์':'⚛️','เคมี':'🧪','ชีววิทยา':'🧬','โลกและดาราศาสตร์':'🌍','ทั่วไป':'🔧' };
 const S = { token: localStorage.t || '', user: JSON.parse(localStorage.u || 'null'), eq: [], cart: {}, loans: [], tab: 'eq', q: '', reg: false, users: [] };
 const $ = s => document.querySelector(s);
 const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
@@ -174,7 +79,7 @@ const isStaff = () => S.user && STAFF.includes(S.user.role);
 const cartN = () => Object.values(S.cart).reduce((a, b) => a + b, 0);
 
 async function api(action, data = {}) {
-  const r = await fetch(API, { method: 'POST', body: JSON.stringify({ action, token: S.token, data }) }); 
+  const r = await fetch(API, { method: 'POST', body: JSON.stringify({ action, token: S.token, data }) }); // text/plain เลี่ยง CORS preflight
   const j = await r.json();
   if (!j.ok) { if (j.code === 'AUTH') logout(); throw new Error(j.error); }
   return j.data;
@@ -186,12 +91,12 @@ function go(t) { S.tab = t; render(); }
 
 function render() {
   if (!S.token && S.reg) return $('#app').innerHTML = regView();
-  if (!S.token) return $('#app').innerHTML = `<div class="card login"><h1>ยืม-คืนอุปกรณ์<br>วิทยาศาสตร์</h1><p class="sub">เข้าสู่ระบบเพื่อเริ่มใช้งาน</p>
+  if (!S.token) return $('#app').innerHTML = `<div class="card login"><div class="logo">🔬</div><h1>ยืม-คืนอุปกรณ์<br>วิทยาศาสตร์</h1><p class="sub">เข้าสู่ระบบเพื่อเริ่มใช้งาน</p>
     <label>รหัสผู้ใช้</label><input id="uid" autocomplete="username"><label>PIN</label><input id="pin" type="password" autocomplete="current-password">
-    <button class="b" style="width:100%; margin-top: 8px;" onclick="doLogin()">เข้าสู่ระบบ</button>
-    <p class="alt"><a href="#" onclick="S.reg=true;render();return false">ยังไม่มีบัญชี? ลงทะเบียนที่นี่</a></p></div>`;
+    <button class="b" style="width:100%" onclick="doLogin()">เข้าสู่ระบบ</button>
+    <p class="alt"><a href="#" onclick="S.reg=true;render();return false">ยังไม่มีบัญชี? ลงทะเบียน</a></p></div>`;
   const tabs = [['eq','อุปกรณ์'],['cart','ตะกร้า'],['loans','รายการยืม']].concat(isStaff() ? [['dash','แดชบอร์ด'],['add','เพิ่มอุปกรณ์']] : []).concat(S.user.role === 'admin' ? [['users','ผู้ใช้']] : []);
-  $('#app').innerHTML = `<header><div><div class="brand">ยืม-คืนอุปกรณ์วิทยาศาสตร์</div><small style="color:var(--mute)">${esc(S.user.name)} · ${S.user.role}</small></div><button class="b g" style="padding: 6px 12px; font-size:13px;" onclick="logout()">ออกจากระบบ</button></header>
+  $('#app').innerHTML = `<header><div><div class="brand">ยืม-คืนอุปกรณ์วิทยาศาสตร์</div><small>${esc(S.user.name)} · ${S.user.role}</small></div><button class="b g" onclick="logout()">ออกจากระบบ</button></header>
     <nav>${tabs.map(([k, l]) => `<button class="${S.tab == k ? 'on' : ''}" onclick="go('${k}')">${l}${k == 'cart' ? ` (<span id="cn">${cartN()}</span>)` : ''}</button>`).join('')}</nav><main id="main"></main>`;
   ({ eq: vEq, cart: vCart, loans: vLoans, dash: vDash, add: vAdd, users: vUsers })[S.tab]();
 }
@@ -213,9 +118,9 @@ function drawEq() {
   const q = S.q.toLowerCase();
   $('#list').innerHTML = S.eq.filter(e => (e.name + e.category + e.equip_id).toLowerCase().includes(q)).map(e => {
     const ok = e.status === 'ใช้งานได้' && +e.available_qty > 0;
-    return `<div class="card row"><div><b style="font-weight:600; font-size:16px;">${esc(e.name)}</b> ${e.requires_approval === 'Y' ? '<span class="tag pend" style="margin-left:4px;">ต้องอนุมัติ</span>' : ''}<br>
-      <small style="display:inline-block; margin-top:4px;">${esc(e.equip_id)} · ${esc(e.category)} · ${esc(e.location)}</small><br>
-      <span class="tag ${+e.available_qty ? 'ok' : 'warn'}" style="margin-top:8px;">คงเหลือ ${e.available_qty}/${e.total_qty} ${esc(e.unit)}</span></div>
+    return `<div class="card row"><div class="ic" style="--c:${CC[e.category] || '#64748b'}">${CI[e.category] || '🔧'}</div><div style="flex:1"><b style="font-weight:600">${esc(e.name)}</b> ${e.requires_approval === 'Y' ? '<span class="tag pend">ต้องอนุมัติ</span>' : ''}<br>
+      <small>${esc(e.equip_id)} · ${esc(e.category)} · ${esc(e.location)}</small><br>
+      <span class="tag ${+e.available_qty ? 'ok' : 'warn'}">คงเหลือ ${e.available_qty}/${e.total_qty} ${esc(e.unit)}</span></div>
       <button class="b" ${ok ? '' : 'disabled'} onclick="addCart('${e.equip_id}')">+ ยืม</button></div>`;
   }).join('') || '<p>ไม่พบอุปกรณ์</p>';
 }
@@ -236,10 +141,10 @@ function scan() {
 function vCart() {
   const ids = Object.keys(S.cart);
   $('#main').innerHTML = ids.length ? ids.map(id => { const e = S.eq.find(x => x.equip_id === id) || {};
-    return `<div class="card row"><div><b style="font-size:16px;">${esc(e.name)}</b><br><small>${id}</small></div><div style="display:flex; align-items:center; gap:12px;">
-      <button class="b g" style="padding: 6px 12px;" onclick="chg('${id}',-1)">−</button> <b style="font-size:16px;">${S.cart[id]}</b> <button class="b g" style="padding: 6px 12px;" onclick="chg('${id}',1)">+</button></div></div>`; }).join('') +
-    `<div class="card"><label>ชื่อกลุ่มทดลอง</label><input id="gn" placeholder="ใส่ชื่อกลุ่ม..."><label>วิชา/คาบเรียน</label><input id="sc" placeholder="วิชา...">
-    <label>จำนวนวันที่ยืม</label><input id="dy" type="number" min="1" value="1"><button class="b" style="width:100%; margin-top:8px;" onclick="submitLoan()">ยืนยันการยืม</button></div>`
+    return `<div class="card row"><div><b>${esc(e.name)}</b><br><small>${id}</small></div><div>
+      <button class="b g" onclick="chg('${id}',-1)">−</button> <b>${S.cart[id]}</b> <button class="b g" onclick="chg('${id}',1)">+</button></div></div>`; }).join('') +
+    `<div class="card"><label>ชื่อกลุ่มทดลอง</label><input id="gn"><label>วิชา/คาบเรียน</label><input id="sc">
+    <label>จำนวนวันที่ยืม</label><input id="dy" type="number" min="1" value="1"><button class="b" style="width:100%" onclick="submitLoan()">ยืนยันการยืม</button></div>`
     : '<p>ตะกร้าว่าง — เลือกอุปกรณ์ที่แท็บ "อุปกรณ์" หรือสแกน QR</p>';
 }
 function chg(id, d) {
@@ -263,23 +168,21 @@ function vLoans() {
 }
 function drawLoans() {
   const cls = l => l.overdue ? 'warn' : l.status === 'รออนุมัติ' ? 'pend' : l.status === 'คืนแล้ว' ? 'ok' : '';
-  $('#main').innerHTML = S.loans.map(l => `<div class="card"><div class="row"><b style="font-size:16px;">${l.loan_id}</b>
+  $('#main').innerHTML = S.loans.map(l => `<div class="card"><div class="row"><b>${l.loan_id}</b>
     <span class="tag ${cls(l)}">${l.overdue ? 'เกินกำหนด' : l.status}</span></div>
-    <small style="display:block; margin:8px 0;">${esc(l.borrower_name)} ${l.group_name ? '· กลุ่ม ' + esc(l.group_name) : ''}<br>ยืม ${fmt(l.loan_date)} · กำหนดคืน ${fmt(l.due_date)}</small>
-    <ul style="background:var(--soft); padding:12px 12px 12px 28px; border-radius:12px;">${l.items.map(i => `<li>${esc(i.name)} × ${i.qty} <small>(คืนแล้ว ${i.returned_qty})</small></li>`).join('')}</ul>
-    <div style="margin-top:12px;">
+    <small>${esc(l.borrower_name)} ${l.group_name ? '· กลุ่ม ' + esc(l.group_name) : ''}<br>ยืม ${fmt(l.loan_date)} · กำหนดคืน ${fmt(l.due_date)}</small>
+    <ul>${l.items.map(i => `<li>${esc(i.name)} × ${i.qty} <small>(คืนแล้ว ${i.returned_qty})</small></li>`).join('')}</ul>
     ${l.status === 'รออนุมัติ' && ['teacher', 'admin'].includes(S.user.role) ? `<button class="b" onclick="approve('${l.loan_id}')">อนุมัติ</button>` : ''}
-    ${isStaff() && ['ยืมอยู่', 'คืนบางส่วน'].includes(l.status) ? `<button class="b" onclick="openReturn('${l.loan_id}')">รับคืน</button>` : ''}
-    </div></div>`).join('') || '<p>ยังไม่มีรายการ</p>';
+    ${isStaff() && ['ยืมอยู่', 'คืนบางส่วน'].includes(l.status) ? `<button class="b" onclick="openReturn('${l.loan_id}')">รับคืน</button>` : ''}</div>`).join('') || '<p>ยังไม่มีรายการ</p>';
 }
 function approve(id) { run(async () => { await api('approveLoan', { loan_id: id }); S.eq = []; vLoans(); }); }
 function openReturn(id) {
   const l = S.loans.find(x => x.loan_id === id), d = $('#dlg');
   d.innerHTML = `<h3>รับคืน ${id}</h3>` + l.items.filter(i => i.qty > i.returned_qty).map((i, k) =>
-    `<div class="card" style="box-shadow:none; border:1px solid var(--line); margin-bottom:12px; padding:16px;"><b style="display:block; margin-bottom:10px;">${esc(i.name)} <span style="font-weight:normal; color:var(--mute); font-size:13px;">(ค้างคืน ${i.qty - i.returned_qty})</span></b>
-    <div class="grid" style="gap:12px;"><input type="number" min="0" max="${i.qty - i.returned_qty}" value="${i.qty - i.returned_qty}" id="rq${k}" style="margin:0;">
-    <select id="rc${k}" style="margin:0;"><option>ดี</option><option>พอใช้</option><option>ชำรุด</option></select></div></div>`).join('') +
-    `<div class="row" style="margin-top:20px; justify-content:flex-end;"><button class="b g" onclick="$('#dlg').close()">ยกเลิก</button><button class="b" onclick="doReturn('${id}')">ยืนยันรับคืน</button></div>`;
+    `<div class="card"><b>${esc(i.name)}</b> <small>ค้างคืน ${i.qty - i.returned_qty}</small>
+    <div class="grid"><input type="number" min="0" max="${i.qty - i.returned_qty}" value="${i.qty - i.returned_qty}" id="rq${k}">
+    <select id="rc${k}"><option>ดี</option><option>พอใช้</option><option>ชำรุด</option></select></div></div>`).join('') +
+    `<div class="row"><button class="b g" onclick="$('#dlg').close()">ยกเลิก</button><button class="b" onclick="doReturn('${id}')">ยืนยันรับคืน</button></div>`;
   d.showModal();
 }
 function doReturn(id) {
@@ -292,9 +195,9 @@ function doReturn(id) {
 function vDash() {
   $('#main').innerHTML = '<p>กำลังโหลด...</p>';
   run(async () => {
-    const d = await api('getDashboard'), box = (n, t, c = '') => `<div class="card" style="text-align:center;"><div class="num ${c}">${n}</div><small style="font-weight:500;">${t}</small></div>`;
-    $('#main').innerHTML = `<div class="grid" style="margin-bottom:16px;">${box(d.equipment_types, 'รายการอุปกรณ์')}${box(d.active_loans, 'กำลังถูกยืม')}${box(d.overdue, 'เกินกำหนดคืน', d.overdue ? 'warn' : '')}${box(d.pending, 'รออนุมัติ')}</div>
-      <div class="card"><b style="font-size:16px; display:block; margin-bottom:12px;">สต็อกต่ำ</b>${d.low_stock.map(e => `<div class="row" style="padding:8px 0; border-bottom:1px solid var(--soft);"><span>${esc(e.name)}</span><span class="tag warn">${e.available_qty} / ขั้นต่ำ ${e.min_stock}</span></div>`).join('') || '<br><small>ไม่มี</small>'}</div>`;
+    const d = await api('getDashboard'), box = (n, t, c = '') => `<div class="card"><div class="num ${c}">${n}</div><small>${t}</small></div>`;
+    $('#main').innerHTML = `<div class="grid">${box(d.equipment_types, 'รายการอุปกรณ์')}${box(d.active_loans, 'กำลังถูกยืม')}${box(d.overdue, 'เกินกำหนดคืน', d.overdue ? 'warn' : '')}${box(d.pending, 'รออนุมัติ')}</div>
+      <div class="card"><b>สต็อกต่ำ</b>${d.low_stock.map(e => `<div class="row"><span>${esc(e.name)}</span><span class="tag warn">${e.available_qty} / ขั้นต่ำ ${e.min_stock}</span></div>`).join('') || '<br><small>ไม่มี</small>'}</div>`;
   });
 }
 function vAdd() {
@@ -303,7 +206,7 @@ function vAdd() {
     <label>ประเภท</label><select id="t">${opt(TYPES)}</select><div class="grid"><div><label>จำนวน</label><input id="tq" type="number" value="1"></div><div><label>หน่วย</label><input id="u" value="ชิ้น"></div></div>
     <label>จำนวนขั้นต่ำ (แจ้งเตือน)</label><input id="ms" type="number" value="0"><label>ที่เก็บ</label><input id="lc">
     <label>ต้องให้ครูอนุมัติ (เช่น สารเคมี)</label><select id="ra"><option>N</option><option>Y</option></select>
-    <button class="b" style="width:100%; margin-top:12px;" onclick="saveEq()">บันทึกอุปกรณ์</button></div>`;
+    <button class="b" style="width:100%" onclick="saveEq()">บันทึก</button></div>`;
 }
 function saveEq() {
   run(async () => {
@@ -315,17 +218,17 @@ function saveEq() {
 
 /* ---------- ลงทะเบียน ---------- */
 function regView() {
-  return `<div class="card login"><h1>ลงทะเบียน</h1><p class="sub">สร้างบัญชีผู้ใช้ใหม่</p>
-    <label>รหัสผู้ใช้ (อังกฤษ/ตัวเลข 3-20 ตัว)</label><input id="ru" autocomplete="off">
+  return `<div class="card login"><div class="logo">✨</div><h1>ลงทะเบียน</h1><p class="sub">สร้างบัญชีผู้ใช้ใหม่</p>
+    <label>รหัสผู้ใช้ (ตัวอักษรอังกฤษ/ตัวเลข 3-20 ตัว เช่น รหัสนักเรียน)</label><input id="ru" autocomplete="off">
     <label>ชื่อ-นามสกุล</label><input id="rn">
-    <label>สถานะ</label><select id="rr"><option value="student">นักเรียน</option><option value="teacher">ครู (รอผู้ดูแลอนุมัติ)</option><option value="staff">เจ้าหน้าที่ (รอผู้ดูแลอนุมัติ)</option></select>
+    <label>สถานะ</label><select id="rr"><option value="student">นักเรียน</option><option value="teacher">ครู (รอผู้ดูแลอนุมัติ)</option><option value="staff">เจ้าหน้าที่ห้องปฏิบัติการ (รอผู้ดูแลอนุมัติ)</option></select>
     <label>ชั้น/ห้อง (สำหรับนักเรียน)</label><input id="rc" placeholder="เช่น ม.4/2">
     <label>อีเมลโรงเรียน (ถ้ามี)</label><input id="re" type="email">
     <label>PIN (ตัวเลข 4-8 หลัก)</label><input id="rp" type="password" inputmode="numeric">
     <label>ยืนยัน PIN</label><input id="rp2" type="password" inputmode="numeric">
-    <label>รหัสลงทะเบียน (ถ้ามี)</label><input id="rk" autocomplete="off">
-    <button class="b" style="width:100%; margin-top:12px;" onclick="doRegister()">ลงทะเบียน</button>
-    <p class="alt"><a href="#" onclick="S.reg=false;render();return false">← กลับไปหน้าเข้าสู่ระบบ</a></p></div>`;
+    <label>รหัสลงทะเบียน (ถ้าโรงเรียนกำหนด)</label><input id="rk" autocomplete="off">
+    <button class="b" style="width:100%" onclick="doRegister()">ลงทะเบียน</button>
+    <p class="alt"><a href="#" onclick="S.reg=false;render();return false">← กลับไปเข้าสู่ระบบ</a></p></div>`;
 }
 function doRegister() {
   if ($('#rp').value !== $('#rp2').value) return alert('PIN ทั้งสองช่องไม่ตรงกัน');
@@ -343,13 +246,13 @@ function vUsers() {
 }
 function drawUsers() {
   const R = ['student', 'teacher', 'staff', 'admin'], on = u => u.status === 'active';
-  const list = S.users.slice().sort((a, b) => on(a) - on(b)); 
-  $('#main').innerHTML = list.map(u => `<div class="card"><div class="row"><b style="font-size:16px;">${esc(u.name)}</b>
+  const list = S.users.slice().sort((a, b) => on(a) - on(b)); // รออนุมัติขึ้นก่อน
+  $('#main').innerHTML = list.map(u => `<div class="card"><div class="row"><b>${esc(u.name)}</b>
     <span class="tag ${on(u) ? 'ok' : 'pend'}">${on(u) ? 'ใช้งาน' : 'รออนุมัติ/ปิด'}</span></div>
-    <small style="display:block; margin-top:4px;">${esc(u.user_id)} · ${esc(u.class_room)} · ${esc(u.email)}</small>
-    <div class="grid" style="margin:16px 0 12px; gap:8px;"><select onchange="updUser('${esc(u.user_id)}',{role:this.value})" style="margin:0;">${R.map(r => `<option ${r === u.role ? 'selected' : ''}>${r}</option>`).join('')}</select>
-    <button class="b ${on(u) ? 'g' : ''}" style="margin:0;" onclick="updUser('${esc(u.user_id)}',{status:'${on(u) ? 'inactive' : 'active'}'})">${on(u) ? 'ปิดบัญชี' : 'อนุมัติบัญชี'}</button></div>
-    <button class="b g" style="width:100%;" onclick="resetPin('${esc(u.user_id)}')">รีเซ็ต PIN</button></div>`).join('') || '<p>ยังไม่มีผู้ใช้</p>';
+    <small>${esc(u.user_id)} · ${esc(u.class_room)} · ${esc(u.email)}</small>
+    <div class="grid" style="margin:8px 0"><select onchange="updUser('${esc(u.user_id)}',{role:this.value})">${R.map(r => `<option ${r === u.role ? 'selected' : ''}>${r}</option>`).join('')}</select>
+    <button class="b ${on(u) ? 'g' : ''}" onclick="updUser('${esc(u.user_id)}',{status:'${on(u) ? 'inactive' : 'active'}'})">${on(u) ? 'ปิดบัญชี' : 'อนุมัติ'}</button></div>
+    <button class="b g" onclick="resetPin('${esc(u.user_id)}')">รีเซ็ต PIN</button></div>`).join('') || '<p>ยังไม่มีผู้ใช้</p>';
 }
 function updUser(id, patch) { run(async () => { await api('updateUser', { user_id: id, ...patch }); vUsers(); }); }
 function resetPin(id) { const p = prompt('PIN ใหม่ (ตัวเลข 4-8 หลัก)'); if (p) updUser(id, { new_pin: p }); }
