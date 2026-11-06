@@ -57,6 +57,10 @@ a{color:var(--p2);text-decoration:none;font-weight:500}
 dialog{border:0;border-radius:28px;padding:22px;width:min(92vw,480px);background:#fff;color:var(--ink);box-shadow:0 30px 60px -20px #1e1b4b66}
 dialog::backdrop{background:#1e1b4b66;backdrop-filter:blur(4px)}
 dialog h3{margin:0 0 14px;font-weight:600}
+.chips{display:flex;gap:8px;overflow-x:auto;margin-bottom:14px;scrollbar-width:none}
+.chip{white-space:nowrap;border:1.5px solid var(--line);background:#fff;color:var(--mute);border-radius:99px;padding:6px 14px;font:inherit;font-size:13px;cursor:pointer}
+.chip.on{background:#eef2ff;border-color:var(--p2);color:var(--p2);font-weight:500}
+.why{background:#f8fafc;border-radius:14px;padding:8px 12px;margin:10px 0 0;font-size:14px}
 </style>
 </head>
 <body>
@@ -64,18 +68,20 @@ dialog h3{margin:0 0 14px;font-weight:600}
 <dialog id="dlg"></dialog>
 <script>
 /* ===== ตั้งค่า: ใส่ URL ของ Web App (ลงท้าย /exec) ===== */
-const API = 'https://script.google.com/macros/s/AKfycbz_lnVi84lrRexPKvMlrZ6neBmTT0Smr2NzLKUwRuo3oqwInZbJ2quTNXjTNUyhkQXq/exec';
+const API = 'https://script.google.com/macros/s/AKfycbwkEKaV0YQ4FRUApBPZ3J9hdHaopY2THV91drF71Qdx2Ymmll0POiKBVnAIaoL0R6n3/exec';
 
 const CATS = ['ฟิสิกส์','เคมี','ชีววิทยา','โลกและดาราศาสตร์','ทั่วไป'];
 const TYPES = ['อุปกรณ์ทั่วไป','อุปกรณ์ราคาสูง','วัสดุสิ้นเปลือง'];
-const STAFF = ['staff','teacher','admin'];
+const RT = { student: 'นักเรียน', teacher: 'ครู', staff: 'เจ้าหน้าที่', admin: 'ผู้ดูแลระบบ' };
 const CC = { 'ฟิสิกส์':'#3b82f6','เคมี':'#ec4899','ชีววิทยา':'#10b981','โลกและดาราศาสตร์':'#8b5cf6','ทั่วไป':'#f59e0b' };
 const CI = { 'ฟิสิกส์':'⚛️','เคมี':'🧪','ชีววิทยา':'🧬','โลกและดาราศาสตร์':'🌍','ทั่วไป':'🔧' };
-const S = { token: localStorage.t || '', user: JSON.parse(localStorage.u || 'null'), eq: [], cart: {}, loans: [], tab: 'eq', q: '', reg: false, users: [] };
+const S = { token: localStorage.t || '', user: JSON.parse(localStorage.u || 'null'), eq: [], cart: {}, loans: [], tab: 'eq', q: '', reg: false, users: [], lf: 'pending', free: true, cat: '' };
 const $ = s => document.querySelector(s);
 const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const fmt = d => d ? new Date(d).toLocaleString('th-TH', { dateStyle: 'short', timeStyle: 'short' }) : '-';
-const isStaff = () => S.user && STAFF.includes(S.user.role);
+const canBorrow = () => ['student', 'teacher', 'admin'].includes(S.user.role);
+const canApprove = () => ['teacher', 'staff', 'admin'].includes(S.user.role);
+const isKeeper = () => ['staff', 'admin'].includes(S.user.role);
 const cartN = () => Object.values(S.cart).reduce((a, b) => a + b, 0);
 
 async function api(action, data = {}) {
@@ -95,10 +101,10 @@ function render() {
     <label>รหัสผู้ใช้</label><input id="uid" autocomplete="username"><label>PIN</label><input id="pin" type="password" autocomplete="current-password">
     <button class="b" style="width:100%" onclick="doLogin()">เข้าสู่ระบบ</button>
     <p class="alt"><a href="#" onclick="S.reg=true;render();return false">ยังไม่มีบัญชี? ลงทะเบียน</a></p></div>`;
-  const tabs = [['eq','อุปกรณ์'],['cart','ตะกร้า'],['loans','รายการยืม']].concat(isStaff() ? [['dash','แดชบอร์ด'],['add','เพิ่มอุปกรณ์']] : []).concat(S.user.role === 'admin' ? [['users','ผู้ใช้']] : []);
-  $('#app').innerHTML = `<header><div><div class="brand">ยืม-คืนอุปกรณ์วิทยาศาสตร์</div><small>${esc(S.user.name)} · ${S.user.role}</small></div><button class="b g" onclick="logout()">ออกจากระบบ</button></header>
+  const tabs = [['eq','อุปกรณ์']].concat(canBorrow() ? [['cart','ตะกร้า']] : [], [['loans', canApprove() ? 'คำขอ/รายการยืม' : 'รายการของฉัน']], isKeeper() ? [['demand','ภาพรวม'],['dash','แดชบอร์ด'],['add','เพิ่มอุปกรณ์']] : []).concat(S.user.role === 'admin' ? [['users','ผู้ใช้']] : []);
+  $('#app').innerHTML = `<header><div><div class="brand">ยืม-คืนอุปกรณ์วิทยาศาสตร์</div><small>${esc(S.user.name)} · ${RT[S.user.role]}</small></div><button class="b g" onclick="logout()">ออกจากระบบ</button></header>
     <nav>${tabs.map(([k, l]) => `<button class="${S.tab == k ? 'on' : ''}" onclick="go('${k}')">${l}${k == 'cart' ? ` (<span id="cn">${cartN()}</span>)` : ''}</button>`).join('')}</nav><main id="main"></main>`;
-  ({ eq: vEq, cart: vCart, loans: vLoans, dash: vDash, add: vAdd, users: vUsers })[S.tab]();
+  ({ eq: vEq, cart: vCart, loans: vLoans, dash: vDash, add: vAdd, users: vUsers, demand: vDemand })[S.tab]();
 }
 
 function doLogin() {
@@ -111,20 +117,21 @@ function doLogin() {
 /* ---------- อุปกรณ์ + สแกน QR ---------- */
 function vEq() {
   $('#main').innerHTML = `<div class="row"><input id="q" placeholder="ค้นหาอุปกรณ์..." value="${esc(S.q)}" oninput="S.q=this.value;drawEq()">
-    <button class="b g" style="margin-bottom:6px;white-space:nowrap" onclick="scan()">สแกน QR</button></div><div id="reader"></div><div id="list"></div>`;
+    <button class="b g" style="margin-bottom:6px;white-space:nowrap" onclick="scan()">สแกน QR</button></div><div class="chips"><button class="chip ${S.free ? 'on' : ''}" onclick="S.free=!S.free;vEq()">เฉพาะที่ว่าง</button>${['', ...CATS].map(c => `<button class="chip ${S.cat === c ? 'on' : ''}" onclick="S.cat='${c}';vEq()">${c || 'ทุกหมวด'}</button>`).join('')}</div><div id="reader"></div><div id="list"></div>`;
   S.eq.length ? drawEq() : run(async () => { S.eq = await api('getEquipment'); drawEq(); });
 }
 function drawEq() {
   const q = S.q.toLowerCase();
-  $('#list').innerHTML = S.eq.filter(e => (e.name + e.category + e.equip_id).toLowerCase().includes(q)).map(e => {
+  $('#list').innerHTML = S.eq.filter(e => (e.name + e.category + e.equip_id).toLowerCase().includes(q) && (!S.free || (e.status === 'ใช้งานได้' && +e.available_qty > 0)) && (!S.cat || e.category === S.cat)).map(e => {
     const ok = e.status === 'ใช้งานได้' && +e.available_qty > 0;
     return `<div class="card row"><div class="ic" style="--c:${CC[e.category] || '#64748b'}">${CI[e.category] || '🔧'}</div><div style="flex:1"><b style="font-weight:600">${esc(e.name)}</b> ${e.requires_approval === 'Y' ? '<span class="tag pend">ต้องอนุมัติ</span>' : ''}<br>
       <small>${esc(e.equip_id)} · ${esc(e.category)} · ${esc(e.location)}</small><br>
       <span class="tag ${+e.available_qty ? 'ok' : 'warn'}">คงเหลือ ${e.available_qty}/${e.total_qty} ${esc(e.unit)}</span></div>
-      <button class="b" ${ok ? '' : 'disabled'} onclick="addCart('${e.equip_id}')">+ ยืม</button></div>`;
+      ${canBorrow() ? `<button class="b" ${ok ? '' : 'disabled'} onclick="addCart('${e.equip_id}')">+ ยืม</button>` : ''}</div>`;
   }).join('') || '<p>ไม่พบอุปกรณ์</p>';
 }
 function addCart(id) {
+  if (!canBorrow()) return alert('บทบาทนี้ไม่สามารถยืมอุปกรณ์ได้');
   const e = S.eq.find(x => x.equip_id === id);
   if (!e) return alert('ไม่พบรหัสอุปกรณ์ ' + id);
   if ((S.cart[id] || 0) >= +e.available_qty) return alert('เกินจำนวนคงเหลือ');
@@ -143,7 +150,7 @@ function vCart() {
   $('#main').innerHTML = ids.length ? ids.map(id => { const e = S.eq.find(x => x.equip_id === id) || {};
     return `<div class="card row"><div><b>${esc(e.name)}</b><br><small>${id}</small></div><div>
       <button class="b g" onclick="chg('${id}',-1)">−</button> <b>${S.cart[id]}</b> <button class="b g" onclick="chg('${id}',1)">+</button></div></div>`; }).join('') +
-    `<div class="card"><label>ชื่อกลุ่มทดลอง</label><input id="gn"><label>วิชา/คาบเรียน</label><input id="sc">
+    `<div class="card"><label>เหตุผลที่ยืม *</label><input id="pp" placeholder="เช่น ทดลองการกรองน้ำ วิชาเคมี ม.4"><label>ชื่อกลุ่มทดลอง</label><input id="gn"><label>วิชา/คาบเรียน</label><input id="sc">
     <label>จำนวนวันที่ยืม</label><input id="dy" type="number" min="1" value="1"><button class="b" style="width:100%" onclick="submitLoan()">ยืนยันการยืม</button></div>`
     : '<p>ตะกร้าว่าง — เลือกอุปกรณ์ที่แท็บ "อุปกรณ์" หรือสแกน QR</p>';
 }
@@ -153,9 +160,10 @@ function chg(id, d) {
   vCart();
 }
 function submitLoan() {
+  if (!$('#pp').value.trim()) return alert('กรุณาระบุเหตุผลที่ยืม');
   run(async () => {
     const r = await api('createLoan', { items: Object.entries(S.cart).map(([equip_id, qty]) => ({ equip_id, qty })),
-      group_name: $('#gn').value, subject_class: $('#sc').value, days: $('#dy').value });
+      purpose: $('#pp').value, group_name: $('#gn').value, subject_class: $('#sc').value, days: $('#dy').value });
     alert(r.status === 'รออนุมัติ' ? `ส่งคำขอแล้ว (${r.loan_id}) รอครูอนุมัติ` : `บันทึกการยืมแล้ว ${r.loan_id}`);
     S.cart = {}; S.eq = []; go('loans');
   });
@@ -164,16 +172,56 @@ function submitLoan() {
 /* ---------- รายการยืม / อนุมัติ / คืน ---------- */
 function vLoans() {
   $('#main').innerHTML = '<p>กำลังโหลด...</p>';
-  run(async () => { S.loans = await api(isStaff() ? 'getAllLoans' : 'getMyLoans'); drawLoans(); });
+  run(async () => { S.loans = await api(canApprove() ? 'getAllLoans' : 'getMyLoans'); drawLoans(); });
 }
 function drawLoans() {
+  const me = String(S.user.user_id), f = S.lf, ap = canApprove();
   const cls = l => l.overdue ? 'warn' : l.status === 'รออนุมัติ' ? 'pend' : l.status === 'คืนแล้ว' ? 'ok' : '';
-  $('#main').innerHTML = S.loans.map(l => `<div class="card"><div class="row"><b>${l.loan_id}</b>
-    <span class="tag ${cls(l)}">${l.overdue ? 'เกินกำหนด' : l.status}</span></div>
+  const nP = S.loans.filter(l => l.status === 'รออนุมัติ').length;
+  const chips = ap ? `<div class="chips">${[['pending', 'รออนุมัติ (' + nP + ')'], ['mine', 'ของฉัน'], ['all', 'ทั้งหมด']].map(([k, t]) => `<button class="chip ${f == k ? 'on' : ''}" onclick="S.lf='${k}';drawLoans()">${t}</button>`).join('')}</div>` : '';
+  const list = S.loans.filter(l => !ap || f === 'all' || (f === 'pending' ? l.status === 'รออนุมัติ' : String(l.borrower_id) === me));
+  $('#main').innerHTML = chips + (list.map(l => {
+    const mine = String(l.borrower_id) === me, active = ['ยืมอยู่', 'คืนบางส่วน'].includes(l.status);
+    return `<div class="card"><div class="row"><b>${l.loan_id}</b><span class="tag ${cls(l)}">${l.overdue ? 'เกินกำหนด' : l.status}</span></div>
     <small>${esc(l.borrower_name)} ${l.group_name ? '· กลุ่ม ' + esc(l.group_name) : ''}<br>ยืม ${fmt(l.loan_date)} · กำหนดคืน ${fmt(l.due_date)}</small>
+    ${l.purpose ? `<p class="why">เหตุผล: ${esc(l.purpose)}</p>` : ''}
     <ul>${l.items.map(i => `<li>${esc(i.name)} × ${i.qty} <small>(คืนแล้ว ${i.returned_qty})</small></li>`).join('')}</ul>
-    ${l.status === 'รออนุมัติ' && ['teacher', 'admin'].includes(S.user.role) ? `<button class="b" onclick="approve('${l.loan_id}')">อนุมัติ</button>` : ''}
-    ${isStaff() && ['ยืมอยู่', 'คืนบางส่วน'].includes(l.status) ? `<button class="b" onclick="openReturn('${l.loan_id}')">รับคืน</button>` : ''}</div>`).join('') || '<p>ยังไม่มีรายการ</p>';
+    ${l.status === 'รออนุมัติ' && ap && !mine ? `<button class="b" onclick="approve('${l.loan_id}')">อนุมัติ</button><button class="b g" onclick="reject('${l.loan_id}')">ไม่อนุมัติ</button>` : ''}
+    ${isKeeper() && active ? `<button class="b" onclick="openReturn('${l.loan_id}')">รับคืน</button>` : ''}
+    ${mine && active ? `<button class="b g" onclick="pickPhoto('${l.loan_id}')">📷 ${l.return_photo_url ? 'ถ่ายรูปใหม่' : 'บันทึกรูปหลังใช้งาน'}</button>` : ''}
+    ${l.return_photo_url ? `<button class="b g" onclick="viewPhoto('${l.loan_id}')">ดูรูป</button>` : ''}</div>`;
+  }).join('') || '<p>ไม่มีรายการ</p>');
+}
+function reject(id) { const r = prompt('เหตุผลที่ไม่อนุมัติ'); if (r !== null) run(async () => { await api('rejectLoan', { loan_id: id, reason: r }); vLoans(); }); }
+function pickPhoto(id) {
+  const i = document.createElement('input'); i.type = 'file'; i.accept = 'image/*'; i.capture = 'environment';
+  i.onchange = () => { if (i.files[0]) run(async () => { await api('uploadReturnPhoto', { loan_id: id, image: await shrink(i.files[0]) }); alert('บันทึกรูปแล้ว'); vLoans(); }); };
+  i.click();
+}
+function shrink(file) {
+  return new Promise((ok, no) => {
+    const im = new Image();
+    im.onload = () => { const k = Math.min(1, 1024 / Math.max(im.width, im.height)), c = document.createElement('canvas'); c.width = im.width * k; c.height = im.height * k; c.getContext('2d').drawImage(im, 0, 0, c.width, c.height); ok(c.toDataURL('image/jpeg', .72)); };
+    im.onerror = () => no(new Error('อ่านไฟล์รูปไม่ได้')); im.src = URL.createObjectURL(file);
+  });
+}
+function viewPhoto(id) {
+  run(async () => { const r = await api('getPhoto', { loan_id: id }), d = $('#dlg');
+    d.innerHTML = `<h3>รูปหลังใช้งาน · ${id}</h3><img src="${r.data}" style="width:100%;border-radius:18px"><br><br><button class="b g" onclick="$('#dlg').close()">ปิด</button>`; d.showModal(); });
+}
+
+/* ---------- ภาพรวมความต้องการ (staff) ---------- */
+function vDemand() {
+  $('#main').innerHTML = '<p>กำลังโหลด...</p>';
+  run(async () => {
+    const d = await api('getDemand'), short = d.filter(o => o.shortfall).length;
+    $('#main').innerHTML = `<div class="card"><b>ภาพรวมความต้องการ</b><br><small>${d.filter(o => o.pending_qty).length} รายการรออนุมัติ · ${short ? 'สต็อกไม่พอ ' + short + ' รายการ' : 'สต็อกเพียงพอ'}</small></div>` +
+      (d.map(o => `<div class="card"><div class="row"><div class="ic" style="--c:${CC[o.category] || '#64748b'}">${CI[o.category] || '🔧'}</div>
+        <div style="flex:1"><b>${esc(o.name)}</b><br><small>${esc(o.type)} · ว่าง ${o.available_qty}/${o.total_qty} ${esc(o.unit)}</small></div>
+        <div style="text-align:right"><div class="num" style="font-size:26px">${o.pending_qty}</div><small>ที่ขอ (${esc(o.unit)})</small></div></div>
+        <div style="margin-top:8px">${o.shortfall ? `<span class="tag warn">ขาด ${o.shortfall}</span> ` : ''}<span class="tag">กำลังใช้ ${o.in_use_qty}</span></div>
+        ${o.requesters.length ? `<ul>${o.requesters.map(r => `<li>${esc(r.name)} × ${r.qty} <small>${esc(r.purpose)} · ${r.loan_id}</small></li>`).join('')}</ul>` : ''}</div>`).join('') || '<p>ยังไม่มีความต้องการ</p>');
+  });
 }
 function approve(id) { run(async () => { await api('approveLoan', { loan_id: id }); S.eq = []; vLoans(); }); }
 function openReturn(id) {
