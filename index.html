@@ -81,7 +81,7 @@ dialog h3{margin:0 0 14px;font-weight:600}
 <dialog id="pop"></dialog>
 <script>
 /* ===== ตั้งค่า: ใส่ URL ของ Web App (ลงท้าย /exec) ===== */
-const API = 'https://script.google.com/macros/s/AKfycbwkEKaV0YQ4FRUApBPZ3J9hdHaopY2THV91drF71Qdx2Ymmll0POiKBVnAIaoL0R6n3/exec';
+const API = 'https://script.google.com/macros/s/AKfycbxi224WYT409zK4Fo45n7byCU2xpfn9dGwKs5dYAUb_BskDp9zSPGetbrASK_orD03i/exec';
 
 const CATS = ['ฟิสิกส์','เคมี','ชีววิทยา','โลกและดาราศาสตร์','ทั่วไป'];
 const TYPES = ['อุปกรณ์ทั่วไป','อุปกรณ์ราคาสูง','วัสดุสิ้นเปลือง'];
@@ -139,7 +139,7 @@ function drawEq() {
     const ok = e.status === 'ใช้งานได้' && +e.available_qty > 0;
     return `<div class="card row"><div class="ic" style="--c:${CC[e.category] || '#64748b'}">${CI[e.category] || '🔧'}</div><div style="flex:1"><b style="font-weight:600">${esc(e.name)}</b> ${e.requires_approval === 'Y' ? '<span class="tag pend">ต้องอนุมัติ</span>' : ''}<br>
       <small>${esc(e.equip_id)} · ${esc(e.category)} · ${esc(e.location)}</small><br>
-      <span class="tag ${+e.available_qty ? 'ok' : 'warn'}">คงเหลือ ${e.available_qty}/${e.total_qty} ${esc(e.unit)}</span></div>
+      <span class="tag ${+e.available_qty ? 'ok' : 'warn'}">คงเหลือ ${e.available_qty}/${e.total_qty} ${esc(e.unit)}</span>${e.status !== 'ใช้งานได้' ? ` <span class="tag pend">${e.status}</span>` : ''}${isKeeper() ? `<br><button class="b g" onclick="openEdit('${e.equip_id}')">แก้ไข</button><button class="b g" onclick="delEq('${e.equip_id}')">ลบ</button>` : ''}</div>
       ${canBorrow() ? `<button class="b" ${ok ? '' : 'disabled'} onclick="addCart('${e.equip_id}')">+ ยืม</button>` : ''}</div>`;
   }).join('') || '<p>ไม่พบอุปกรณ์</p>';
 }
@@ -200,6 +200,7 @@ function drawLoans() {
     ${l.purpose ? `<p class="why">เหตุผล: ${esc(l.purpose)}</p>` : ''}
     <ul>${l.items.map(i => `<li>${esc(i.name)} × ${i.qty} <small>(คืนแล้ว ${i.returned_qty})</small></li>`).join('')}</ul>
     ${l.status === 'รออนุมัติ' && ap && !mine ? `<button class="b" onclick="approve('${l.loan_id}')">อนุมัติ</button><button class="b g" onclick="reject('${l.loan_id}')">ไม่อนุมัติ</button>` : ''}
+    ${l.status === 'รออนุมัติ' && mine ? `<button class="b g" onclick="cancelLoan('${l.loan_id}')">ยกเลิกคำขอ</button>` : ''}
     ${isKeeper() && active ? `<button class="b" onclick="openReturn('${l.loan_id}')">รับคืน</button>` : ''}
     ${mine && active ? `<button class="b g" onclick="pickPhoto('${l.loan_id}')">📷 ${l.return_photo_url ? 'ถ่ายรูปใหม่' : 'บันทึกรูปหลังใช้งาน'}</button>` : ''}
     ${l.return_photo_url ? `<button class="b g" onclick="viewPhoto('${l.loan_id}')">ดูรูป</button>` : ''}</div>`;
@@ -313,10 +314,66 @@ function drawUsers() {
     <small>${esc(u.user_id)} · ${esc(u.class_room)} · ${esc(u.email)}</small>
     <div class="grid" style="margin:8px 0"><select onchange="updUser('${esc(u.user_id)}',{role:this.value})">${R.map(r => `<option ${r === u.role ? 'selected' : ''}>${r}</option>`).join('')}</select>
     <button class="b ${on(u) ? 'g' : ''}" onclick="updUser('${esc(u.user_id)}',{status:'${on(u) ? 'inactive' : 'active'}'})">${on(u) ? 'ปิดบัญชี' : 'อนุมัติ'}</button></div>
-    <button class="b g" onclick="resetPin('${esc(u.user_id)}')">รีเซ็ต PIN</button></div>`).join('') || '<p>ยังไม่มีผู้ใช้</p>';
+    <button class="b g" onclick="resetPin('${esc(u.user_id)}')">รีเซ็ต PIN</button><button class="b g" onclick="openUserEdit('${esc(u.user_id)}')">แก้ไขข้อมูล</button><button class="b r" onclick="delUser('${esc(u.user_id)}')">ลบ</button></div>`).join('') || '<p>ยังไม่มีผู้ใช้</p>';
 }
 function updUser(id, patch) { run(async () => { await api('updateUser', { user_id: id, ...patch }); vUsers(); }); }
 async function resetPin(id) { const p = await ask('ตั้ง PIN ใหม่', 'ตัวเลข 4-8 หลัก', 'password'); if (p) updUser(id, { new_pin: p }); }
+
+/* ---------- CRUD: แก้ไข/ลบ ---------- */
+const opts = (a, v) => a.map(x => `<option ${x === v ? 'selected' : ''}>${x}</option>`).join('');
+function sure(title, msg) {
+  return new Promise(res => {
+    const d = $('#pop');
+    d.innerHTML = `<div class="pi warn">?</div><h3>${esc(title)}</h3><p>${esc(msg)}</p><div class="row2"><button class="b g" id="pc">ยกเลิก</button><button class="b r" id="po">ยืนยัน</button></div>`;
+    d.addEventListener('close', () => res(false), { once: true });
+    d.querySelector('#pc').onclick = () => d.close();
+    d.querySelector('#po').onclick = () => { res(true); d.close(); };
+    if (!d.open) d.showModal();
+  });
+}
+function openEdit(id) {
+  const e = S.eq.find(x => x.equip_id === id), d = $('#dlg');
+  d.innerHTML = `<h3>แก้ไข ${esc(id)}</h3><label>ชื่ออุปกรณ์</label><input id="en" value="${esc(e.name)}">
+    <div class="grid"><div><label>หมวด</label><select id="ec">${opts(CATS, e.category)}</select></div><div><label>ประเภท</label><select id="et">${opts(TYPES, e.type)}</select></div>
+    <div><label>จำนวนทั้งหมด</label><input id="eq" type="number" min="0" value="${e.total_qty}"></div><div><label>หน่วย</label><input id="eu" value="${esc(e.unit)}"></div>
+    <div><label>ขั้นต่ำแจ้งเตือน</label><input id="em" type="number" min="0" value="${e.min_stock}"></div><div><label>ที่เก็บ</label><input id="el" value="${esc(e.location)}"></div>
+    <div><label>สภาพ</label><select id="ed">${opts(['ดี', 'พอใช้', 'ชำรุด'], e.condition)}</select></div><div><label>สถานะ</label><select id="es">${opts(['ใช้งานได้', 'รอซ่อม', 'จำหน่าย', 'สูญหาย'], e.status)}</select></div></div>
+    <label>ต้องให้ครูอนุมัติ</label><select id="ea">${opts(['N', 'Y'], e.requires_approval)}</select>
+    <div class="row2"><button class="b g" onclick="$('#dlg').close()">ยกเลิก</button><button class="b" onclick="saveEdit('${id}')">บันทึก</button></div>`;
+  d.showModal();
+}
+function saveEdit(id) {
+  run(async () => {
+    await api('updateEquipment', { equip_id: id, name: $('#en').value, category: $('#ec').value, type: $('#et').value, total_qty: $('#eq').value, unit: $('#eu').value,
+      min_stock: $('#em').value, location: $('#el').value, condition: $('#ed').value, status: $('#es').value, requires_approval: $('#ea').value });
+    $('#dlg').close(); S.eq = []; vEq(); popup('บันทึกการแก้ไขแล้ว');
+  });
+}
+async function delEq(id) {
+  const e = S.eq.find(x => x.equip_id === id);
+  if (!await sure('ลบอุปกรณ์นี้?', `${e.name} (${id})`)) return;
+  run(async () => {
+    const r = await api('deleteEquipment', { equip_id: id }); S.eq = []; vEq();
+    popup(r.mode === 'retired' ? 'อุปกรณ์นี้มีประวัติการยืม จึงเปลี่ยนสถานะเป็น "จำหน่าย" แทนการลบ เพื่อเก็บประวัติไว้' : 'ลบอุปกรณ์แล้ว');
+  });
+}
+function openUserEdit(id) {
+  const u = S.users.find(x => String(x.user_id) === String(id)), d = $('#dlg');
+  d.innerHTML = `<h3>แก้ไขผู้ใช้ ${esc(id)}</h3><label>ชื่อ-นามสกุล</label><input id="un" value="${esc(u.name)}"><label>ชั้น/ห้อง</label><input id="uc" value="${esc(u.class_room)}"><label>อีเมล</label><input id="ue" value="${esc(u.email)}">
+    <div class="row2"><button class="b g" onclick="$('#dlg').close()">ยกเลิก</button><button class="b" onclick="saveUser('${esc(id)}')">บันทึก</button></div>`;
+  d.showModal();
+}
+function saveUser(id) {
+  run(async () => { await api('updateUser', { user_id: id, name: $('#un').value, class_room: $('#uc').value, email: $('#ue').value }); $('#dlg').close(); vUsers(); popup('บันทึกข้อมูลผู้ใช้แล้ว'); });
+}
+async function delUser(id) {
+  if (!await sure('ลบผู้ใช้นี้?', `บัญชี ${id} จะถูกลบถาวร (ประวัติการยืมเดิมยังอยู่)`)) return;
+  run(async () => { await api('deleteUser', { user_id: id }); vUsers(); popup('ลบผู้ใช้แล้ว'); });
+}
+async function cancelLoan(id) {
+  if (!await sure('ยกเลิกคำขอยืม?', id)) return;
+  run(async () => { await api('cancelLoan', { loan_id: id }); vLoans(); popup('ยกเลิกคำขอแล้ว'); });
+}
 
 /* ---------- ป๊อปอัปแจ้งเตือน (แทน alert/prompt) ---------- */
 function popup(msg, type, title) {
